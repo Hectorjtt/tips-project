@@ -4,10 +4,32 @@ import { createTipService } from "../services/tipService";
 
 export const createTip = (req: Request, res: Response) => {
   try {
-    const { total, method, divisionType, employees } = req.body;
+    // Extraemos total, method, divisionType, numberOfEmployees, employeePercentages, employees
+    // y, en caso de pago con tarjeta, datos adicionales: cardNumber, cardExpiry, cardCvc.
+    const {
+      total,
+      method,
+      divisionType,
+      numberOfEmployees,
+      employeePercentages,
+      employees,
+      cardNumber,
+      cardExpiry,
+      cardCvc,
+    } = req.body;    
     
-    // Llamamos a la capa de servicio para la lógica de negocio
-    const receipt = createTipService({ total, method, divisionType, employees });
+    // Llamamos a la capa de servicio pasando también los datos adicionales para tarjeta.
+    const receipt = createTipService({
+      total,
+      method,
+      divisionType,
+      numberOfEmployees,
+      employeePercentages,
+      employees,
+      cardNumber,
+      cardExpiry,
+      cardCvc,
+    });
     
     // Respuesta con el recibo
     return res.status(201).json(receipt);

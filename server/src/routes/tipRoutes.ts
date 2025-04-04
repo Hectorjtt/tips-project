@@ -7,4 +7,7 @@ const router = Router();
 // POST /api/tips
 router.post("/", createTip);
 
+
 export default router;
+
+
