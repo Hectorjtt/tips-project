@@ -1,19 +1,19 @@
 // src/services/tipService.ts
 
+// Define la estructura de los datos para crear un recibo de propinas
 interface CreateTipData {
   total: number;
   method: string;
   divisionType: string;
   numberOfEmployees?: number;
-  // Si se usa porcentaje, esperamos recibir el arreglo de porcentajes:
-  employeePercentages?: number[];
+  employeePercentages?: number[]; // Para división por porcentaje
   employees?: Array<{ id: number }>;
-  // Datos adicionales para pagos con tarjeta
-  cardNumber?: string;
+  cardNumber?: string; // Datos para pagos con tarjeta
   cardExpiry?: string;
   cardCvc?: string;
 }
 
+// Define la estructura de un recibo de propinas
 interface TipReceipt {
   total: number;
   method: string;
@@ -23,12 +23,25 @@ interface TipReceipt {
   paymentMessage?: string;
 }
 
+// Base de datos en memoria para guardar todos los recibos
 const tipsMemoryDB: TipReceipt[] = [];
 
+// Función que procesa la transacción y genera el recibo
 export const createTipService = (data: CreateTipData) => {
   console.log("Datos recibidos en createTipService:", data);
-  const { total, method, divisionType, numberOfEmployees, employeePercentages, employees, cardNumber, cardExpiry, cardCvc } = data;
+  const {
+    total,
+    method,
+    divisionType,
+    numberOfEmployees,
+    employeePercentages,
+    employees,
+    cardNumber,
+    cardExpiry,
+    cardCvc,
+  } = data;
 
+  // Validación básica del monto y del método de pago
   if (!total || total <= 0) {
     throw new Error("El monto total debe ser válido.");
   }
@@ -36,17 +49,16 @@ export const createTipService = (data: CreateTipData) => {
     throw new Error("Se debe especificar el método de pago.");
   }
 
-  // Inicializamos comisión y mensaje de pago
+  // Inicializamos variables para comisión y mensaje de pago
   let commission = 0;
   let effectiveTotal = total;
   let paymentMessage = "";
 
-  // Si se selecciona "tarjeta", requerimos datos extra y aplicamos comisión
+  // Si el método es tarjeta, se requieren datos extra y se aplica comisión del 2%
   if (method === "tarjeta") {
     if (!cardNumber || !cardExpiry || !cardCvc) {
       throw new Error("Para pagos con tarjeta, se deben proporcionar número de tarjeta, fecha de vencimiento y CVC.");
     }
-    // Ejemplo: comisión del 2%
     commission = total * 0.02;
     effectiveTotal = total - commission;
     paymentMessage = `Pago realizado con tarjeta. Se aplicó una comisión de ${commission.toFixed(2)}.`;
@@ -54,8 +66,8 @@ export const createTipService = (data: CreateTipData) => {
     paymentMessage = "Pago realizado en efectivo.";
   }
 
+  // Calcula la distribución de propinas entre empleados
   let distribution: Array<{ employeeId: number; amount: number }> = [];
-
   if (divisionType === "igual") {
     if (numberOfEmployees && numberOfEmployees > 0) {
       const amountPerEmployee = effectiveTotal / numberOfEmployees;
@@ -94,6 +106,7 @@ export const createTipService = (data: CreateTipData) => {
     });
   }
 
+  // Crea el recibo con todos los datos procesados
   const receipt: TipReceipt = {
     total,
     method,
@@ -103,7 +116,13 @@ export const createTipService = (data: CreateTipData) => {
     paymentMessage,
   };
 
+  // Guarda el recibo en la base de datos en memoria
   tipsMemoryDB.push(receipt);
   console.log("Recibo generado:", receipt);
   return receipt;
+};
+
+// Función para devolver todos los recibos guardados en memoria
+export const getAllTips = (): TipReceipt[] => {
+  return tipsMemoryDB;
 };
