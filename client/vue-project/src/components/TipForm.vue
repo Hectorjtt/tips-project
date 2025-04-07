@@ -10,7 +10,7 @@
       </div>
       
       <div class="form-group">
-        <label for="numberOfEmployees">Número de Empleados:</label>
+        <label for="numberOfEmployees">Número de Meseros:</label>
         <input
           type="number"
           id="numberOfEmployees"
@@ -62,8 +62,9 @@
       <div class="form-group" v-if="form.divisionType === 'porcentaje'">
         <label>Asignar Porcentajes (la suma debe ser 100):</label>
         <div v-for="(percent, index) in form.employeePercentages" :key="index">
-          <label>Empleado {{ index + 1 }}:</label>
-          <input type="number" v-model.number="form.employeePercentages[index]" min="0" max="100" />
+          <label>Mesero {{ index + 1 }}:</label>
+          <!-- Se añade step="any" para permitir decimales -->
+          <input type="number" v-model.number="form.employeePercentages[index]" min="0" max="100" step="any" />
         </div>
       </div>
       
@@ -75,7 +76,7 @@
     <div v-if="receipt" class="receipt">
       <h2>Recibo Generado</h2>
       <p><strong>Total:</strong> {{ receipt.total }}</p>
-      <p><strong>Número de Empleados:</strong> {{ form.numberOfEmployees }}</p>
+      <p><strong>Número de Meseros:</strong> {{ form.numberOfEmployees }}</p>
       <p><strong>Método:</strong> {{ receipt.method }}</p>
       <p><strong>División:</strong> {{ receipt.divisionType }}</p>
       <p v-if="receipt.paymentMessage"><strong>Comisión:</strong> {{ receipt.paymentMessage }}</p>
@@ -85,7 +86,7 @@
       </p>
       <ul v-if="form.divisionType === 'porcentaje'">
         <li v-for="(percent, index) in form.employeePercentages" :key="index">
-          Empleado {{ index + 1 }}: {{ percent }}%
+          Mesero {{ index + 1 }}: {{ percent }}%
         </li>
       </ul>
       
@@ -94,7 +95,7 @@
       </p>
       <ul v-if="form.divisionType === 'igual'">
         <li v-for="(dist, index) in receipt.distribution" :key="index">
-          Empleado {{ dist.employeeId }}: {{ dist.amount.toFixed(2) }}
+          Mesero {{ dist.employeeId }}: {{ dist.amount.toFixed(2) }}
         </li>
       </ul>
       
@@ -103,7 +104,7 @@
       </p>
       <ul v-if="form.divisionType === 'porcentaje'">
         <li v-for="(dist, index) in receipt.distribution" :key="index">
-          Empleado {{ dist.employeeId }}: {{ dist.amount.toFixed(2) }}
+          Mesero {{ dist.employeeId }}: {{ dist.amount.toFixed(2) }}
         </li>
       </ul>
       
@@ -126,7 +127,7 @@
         <p><strong>Distribución:</strong></p>
         <ul>
           <li v-for="(dist, i) in rec.distribution" :key="i">
-            Empleado {{ dist.employeeId }}: {{ dist.amount.toFixed(2) }}
+            Mesero {{ dist.employeeId }}: {{ dist.amount.toFixed(2) }}
           </li>
         </ul>
         <p><strong>Creado:</strong> {{ rec.createdAt }}</p>
