@@ -8,5 +8,4 @@ import TipForm from './components/TipForm.vue'
 </template>
 
 <style scoped>
-/* Tus estilos */
 </style>

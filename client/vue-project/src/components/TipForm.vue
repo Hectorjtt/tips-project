@@ -1,14 +1,14 @@
 <template>
   <div class="tip-form">
     <h1>Pago de Propinas</h1>
-
-    <!-- Formulario -->
+    
+    <!-- Formulario de ingreso de datos para la transacción -->
     <form @submit.prevent="handleSubmit" class="form">
       <div class="form-group">
         <label for="total">Monto Total:</label>
         <input type="number" id="total" v-model="form.total" />
       </div>
-
+      
       <div class="form-group">
         <label for="numberOfEmployees">Número de Empleados:</label>
         <input
@@ -19,7 +19,7 @@
           @change="updateEmployeePercentages"
         />
       </div>
-
+      
       <div class="form-group">
         <label for="method">Método de Pago:</label>
         <select id="method" v-model="form.method">
@@ -28,30 +28,28 @@
           <option value="tarjeta">Tarjeta</option>
         </select>
       </div>
-
-      <!-- Aviso de comisión si se selecciona tarjeta -->
+      
+      <!-- Muestra la nota de comisión si se selecciona el método tarjeta -->
       <div class="commission-info" v-if="form.method === 'tarjeta'">
         <p><em>Nota: Se aplicará una comisión del 2% al monto total por pago con tarjeta.</em></p>
       </div>
-
-      <!-- Campos adicionales para tarjeta -->
+      
+      <!-- Campos adicionales para el pago con tarjeta -->
       <div v-if="form.method === 'tarjeta'">
         <div class="form-group">
           <label for="cardNumber">Número de Tarjeta:</label>
           <input type="text" id="cardNumber" v-model="form.cardNumber" />
         </div>
-
         <div class="form-group">
           <label for="cardExpiry">Fecha de Vencimiento (MM/AA):</label>
           <input type="text" id="cardExpiry" v-model="form.cardExpiry" />
         </div>
-
         <div class="form-group">
           <label for="cardCvc">CVC:</label>
           <input type="text" id="cardCvc" v-model="form.cardCvc" />
         </div>
       </div>
-
+      
       <div class="form-group">
         <label for="divisionType">División:</label>
         <select id="divisionType" v-model="form.divisionType">
@@ -59,26 +57,21 @@
           <option value="porcentaje">Porcentaje</option>
         </select>
       </div>
-
-      <!-- Sección para porcentajes solo si se selecciona "porcentaje" -->
+      
+      <!-- Sección para asignar porcentajes si se elige división por porcentaje -->
       <div class="form-group" v-if="form.divisionType === 'porcentaje'">
         <label>Asignar Porcentajes (la suma debe ser 100):</label>
         <div v-for="(percent, index) in form.employeePercentages" :key="index">
           <label>Empleado {{ index + 1 }}:</label>
-          <input
-            type="number"
-            v-model.number="form.employeePercentages[index]"
-            min="0"
-            max="100"
-          />
+          <input type="number" v-model.number="form.employeePercentages[index]" min="0" max="100" />
         </div>
       </div>
-
-      <!-- Botón de envío -->
+      
+      <!-- Botón para enviar la transacción -->
       <button type="submit">Enviar</button>
     </form>
-
-    <!-- Sección de Recibo -->
+    
+    <!-- Muestra el recibo generado después de enviar la transacción -->
     <div v-if="receipt" class="receipt">
       <h2>Recibo Generado</h2>
       <p><strong>Total:</strong> {{ receipt.total }}</p>
@@ -95,7 +88,7 @@
           Empleado {{ index + 1 }}: {{ percent }}%
         </li>
       </ul>
-
+      
       <p v-if="form.divisionType === 'igual'">
         <strong>Distribución:</strong>
       </p>
@@ -104,7 +97,7 @@
           Empleado {{ dist.employeeId }}: {{ dist.amount.toFixed(2) }}
         </li>
       </ul>
-
+      
       <p v-if="form.divisionType === 'porcentaje'">
         <strong>Distribución Calculada:</strong>
       </p>
@@ -113,8 +106,31 @@
           Empleado {{ dist.employeeId }}: {{ dist.amount.toFixed(2) }}
         </li>
       </ul>
-
+      
       <p><strong>Creado:</strong> {{ receipt.createdAt }}</p>
+    </div>
+    
+    <!-- Botón para obtener y mostrar todos los recibos almacenados -->
+    <button type="button" @click="fetchReceipts" class="show-receipts">
+      Mostrar Todos los Recibos
+    </button>
+    
+    <!-- Sección que muestra la lista de todos los recibos -->
+    <div v-if="allReceipts.length" class="receipts-list">
+      <h2>Todos los Recibos</h2>
+      <div v-for="(rec, idx) in allReceipts" :key="idx" class="receipt-item">
+        <p><strong>Total:</strong> {{ rec.total }}</p>
+        <p><strong>Método:</strong> {{ rec.method }}</p>
+        <p><strong>División:</strong> {{ rec.divisionType }}</p>
+        <p v-if="rec.paymentMessage"><strong>Comisión:</strong> {{ rec.paymentMessage }}</p>
+        <p><strong>Distribución:</strong></p>
+        <ul>
+          <li v-for="(dist, i) in rec.distribution" :key="i">
+            Empleado {{ dist.employeeId }}: {{ dist.amount.toFixed(2) }}
+          </li>
+        </ul>
+        <p><strong>Creado:</strong> {{ rec.createdAt }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -126,7 +142,7 @@ import axios from 'axios'
 export default defineComponent({
   name: 'TipForm',
   setup() {
-    // Objeto form inicial con campos para tarjeta
+    // Objeto que contiene todos los datos del formulario, incluyendo campos de tarjeta
     const form = ref({
       total: 0,
       method: '',
@@ -138,7 +154,10 @@ export default defineComponent({
       cardCvc: ''
     })
 
-    // Inicializa porcentajes iguales
+    // Variable reactiva para almacenar la lista de recibos consultados
+    const allReceipts = ref<any[]>([])
+
+    // Función que asigna porcentajes iguales basado en el número de empleados
     const updateEmployeePercentages = () => {
       form.value.employeePercentages = Array.from(
         { length: form.value.numberOfEmployees },
@@ -146,29 +165,30 @@ export default defineComponent({
       )
     }
 
-    // Actualizamos porcentajes cuando cambie el número de empleados
+    // Actualiza los porcentajes si cambia el número de empleados y se usa división por porcentaje
     watch(() => form.value.numberOfEmployees, () => {
       if (form.value.divisionType === 'porcentaje') {
-        updateEmployeePercentages();
+        updateEmployeePercentages()
       }
     })
 
-    // Si se cambia el tipo de división a porcentaje, inicializamos porcentajes
+    // Reinicia los porcentajes cuando se cambia a división por porcentaje
     watch(() => form.value.divisionType, (newType) => {
       if (newType === 'porcentaje') {
-        updateEmployeePercentages();
+        updateEmployeePercentages()
       }
     })
 
+    // Variable para almacenar el recibo generado después de enviar el formulario
     const receipt = ref<any>(null)
 
+    // Envía la información del formulario al servidor para generar un recibo
     const handleSubmit = async () => {
-      // Verifica que, en caso de "porcentaje", la suma sea 100
       if (form.value.divisionType === 'porcentaje') {
-        const sum = form.value.employeePercentages.reduce((acc: number, cur: number) => acc + cur, 0);
+        const sum = form.value.employeePercentages.reduce((acc: number, cur: number) => acc + cur, 0)
         if (Math.abs(sum - 100) > 0.1) {
-          alert("La suma de los porcentajes debe ser 100");
-          return;
+          alert("La suma de los porcentajes debe ser 100")
+          return
         }
       }
       console.log("Enviando datos del formulario:", form.value)
@@ -181,14 +201,26 @@ export default defineComponent({
       }
     }
 
-    // Inicializa los porcentajes con el valor por defecto
-    updateEmployeePercentages();
+    // Función para obtener todos los recibos del servidor
+    const fetchReceipts = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/tips')
+        allReceipts.value = response.data
+      } catch (error) {
+        console.error("Error al obtener recibos:", error)
+      }
+    }
+
+    // Se establecen los porcentajes iniciales
+    updateEmployeePercentages()
 
     return {
       form,
       receipt,
       handleSubmit,
-      updateEmployeePercentages
+      updateEmployeePercentages,
+      fetchReceipts,
+      allReceipts
     }
   }
 })
@@ -242,6 +274,34 @@ button[type="submit"] {
 button[type="submit"]:hover {
   background-color: #005fa3;
 }
+.show-receipts {
+  padding: 0.5rem 1rem;
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-top: 1rem;
+}
+.show-receipts:hover {
+  background-color: #218838;
+}
+.receipts-list {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+.receipts-list h2 {
+  color: #000;
+}
+.receipt-item {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #ddd;
+  color: #000;
+}
 .receipt {
   margin-top: 1.5rem;
   background-color: #fff;
@@ -271,7 +331,11 @@ button[type="submit"]:hover {
 .commission-info p {
   font-style: italic;
   color: #a00;
-  padding-bottom: 0.5rem; /* Ajusta el valor a tu gusto */
-
+  padding-bottom: 0.5rem;
+}
+.receipts-list ul,
+.receipt-item ul {
+  list-style: none !important;
+  padding-left: 0;
 }
 </style>
